@@ -10,6 +10,7 @@ use Srl;
 func start(argCount: Int, argv: ptr[array[ptr[array[Char]]]]) {
     if argCount < 3 {
         Console.print("Usage: %s <snap>\n", argv~cnt(1));
+        return;
     }
     
     def curlHandle: ptr[Net.Curl] = Net.CurlEasy.init();
