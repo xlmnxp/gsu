@@ -14,7 +14,8 @@ func start(argCount: Int, argv: ptr[array[ptr[array[Char]]]]) {
     }
     
     def curlHandle: ptr[Net.Curl] = Net.CurlEasy.init();
-    def response: ptr[array[Char]];
+    def resultCount: ptr[Int];
+    def responseCode: ptr[Int];
 
     def content: Net._Content;
     content.data = 0
@@ -32,13 +33,10 @@ func start(argCount: Int, argv: ptr[array[ptr[array[Char]]]]) {
     Net.CurlEasy.setOpt(curlHandle, Net.CurlOpt.HTTPHEADER, headers);
     Net.CurlEasy.setOpt(curlHandle, Net.CurlOpt.SSL_VERIFYPEER, false);
     Net.CurlEasy.setOpt(curlHandle, Net.CurlOpt.FOLLOWLOCATION, true);
-    Net.CurlEasy.setOpt(curlHandle, Net.CurlOpt.WRITEDATA, content~ptr);
-    Net.CurlEasy.setOpt(curlHandle, Net.CurlOpt.WRITEFUNCTION, Net._getCallbackFunction~ptr);
-    def responseCode: Int = Net.CurlEasy.perform(curlHandle)
 
-    if responseCode == Net.CurlCode.OK {
-        response = Memory.realloc(content.data, content.size + 1)~cast[ptr[array[Char]]];
-        response~cast[ptr[array[Char]]]~cnt(content.size) = 0;
+    def response: ptr[array[Char]] = Net.Curl.exec(curlHandle, resultCount, responseCode)~cast[ptr[array[Char]]];
+
+    if response != 0 {
         def json: Json = response;
         if json.keysArray(0) == "error-list" {
             Console.print("%s: %s\n", json.getObject("error-list").getObject(0).getString("code").replace("-", " ").toUpperCase().buf, json.getObject("error-list").getObject(0).getString("message").buf);
@@ -47,7 +45,7 @@ func start(argCount: Int, argv: ptr[array[ptr[array[Char]]]]) {
         }
     } else {
         Console.print("ERROR: cannot send request.\n");
-        Console.print("RESPONSE CODE: %d\n", responseCode)
+        Console.print("RESPONSE CODE: %d\n", responseCode~cnt)
     }
     Net.CurlEasy.cleanup(curlHandle);
 } start(Process.argCount, Process.args)
